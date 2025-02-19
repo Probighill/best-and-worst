@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Best and Worst</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card.selected-best {
+            border: 2px solid #22c55e;
+        }
+        .card.selected-worst {
+            border: 2px solid #ef4444;
+        }
+        .choice-text {
+            font-size: 18px;
+            margin-right: 10px;
+        }
+        .buttons {
+            float: right;
+        }
+        button {
+            padding: 8px 16px;
+            margin-left: 8px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .best-btn {
+            background-color: #22c55e;
+            color: white;
+        }
+        .worst-btn {
+            background-color: #ef4444;
+            color: white;
+        }
+        .submit-btn {
+            background-color: #3b82f6;
+            color: white;
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+        }
+        .bar-container {
+            display: flex;
+            height: 30px;
+            margin-top: 10px;
+        }
+        .bar-best {
+            background-color: #22c55e;
+            color: white;
+            text-align: right;
+            padding-right: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .bar-worst {
+            background-color: #ef4444;
+            color: white;
+            padding-left: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .center-line {
+            width: 2px;
+            background-color: #ddd;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .total-votes {
+            font-size: 14px;
+            color: #666;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">Best and Worst</h1>
+    <div id="choices-container"></div>
+    <button id="submit-btn" class="submit-btn" disabled>See Results</button>
+
+    <script>
+        const choices = [
+            { id: 1, text: "Pizza", bestVotes: 45, worstVotes: 5 },
+            { id: 2, text: "Sushi", bestVotes: 30, worstVotes: 15 },
+            { id: 3, text: "Burgers", bestVotes: 20, worstVotes: 10 },
+            { id: 4, text: "Tacos", bestVotes: 35, worstVotes: 8 },
+            { id: 5, text: "Salad", bestVotes: 10, worstVotes: 42 }
+        ];
+
+        let bestChoice = null;
+        let worstChoice = null;
+        let showingResults = false;
+
+        function createChoiceCard(choice) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.id = `card-${choice.id}`;
+            
+            if (!showingResults) {
+                card.innerHTML = `
+                    <span class="choice-text">${choice.text}</span>
+                    <div class="buttons">
+                        <button onclick="selectChoice(${choice.id}, 'best')" class="best-btn">Best</button>
+                        <button onclick="selectChoice(${choice.id}, 'worst')" class="worst-btn">Worst</button>
+                    </div>
+                `;
+            } else {
+                const maxVotes = Math.max(...choices.map(c => Math.max(c.bestVotes, c.worstVotes)));
+                const bestWidth = (choice.bestVotes / maxVotes) * 100;
+                const worstWidth = (choice.worstVotes / maxVotes) * 100;
+                const totalVotes = choice.bestVotes + choice.worstVotes;
+
+                card.innerHTML = `
+                    <div class="choice-text">${choice.text}<span class="total-votes">(${totalVotes} votes)</span></div>
+                    <div class="bar-container">
+                        <div class="bar-best" style="width: ${bestWidth}%">${choice.bestVotes}</div>
+                        <div class="center-line"></div>
+                        <div class="bar-worst" style="width: ${worstWidth}%">${choice.worstVotes}</div>
+                    </div>
+                `;
+            }
+            return card;
+        }
+
+        function selectChoice(id, type) {
+            if (type === 'best') {
+                if (bestChoice === id) {
+                    bestChoice = null;
+                    document.getElementById(`card-${id}`).classList.remove('selected-best');
+                } else {
+                    if (bestChoice) {
+                        document.getElementById(`card-${bestChoice}`).classList.remove('selected-best');
+                    }
+                    bestChoice = id;
+                    document.getElementById(`card-${id}`).classList.add('selected-best');
+                }
+            } else {
+                if (worstChoice === id) {
+                    worstChoice = null;
+                    document.getElementById(`card-${id}`).classList.remove('selected-worst');
+                } else {
+                    if (worstChoice) {
+                        document.getElementById(`card-${worstChoice}`).classList.remove('selected-worst');
+                    }
+                    worstChoice = id;
+                    document.getElementById(`card-${id}`).classList.add('selected-worst');
+                }
+            }
+
+            // Update submit button state
+            document.getElementById('submit-btn').disabled = !(bestChoice && worstChoice);
+        }
+
+        function showResults() {
+            showingResults = true;
+            const container = document.getElementById('choices-container');
+            container.innerHTML = '';
+            
+            // Sort choices by total votes
+            const sortedChoices = [...choices].sort((a, b) => 
+                (b.bestVotes + b.worstVotes) - (a.bestVotes + a.worstVotes)
+            );
+
+            sortedChoices.forEach(choice => {
+                container.appendChild(createChoiceCard(choice));
+            });
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.textContent = 'Play Again';
+            submitBtn.onclick = resetGame;
+        }
+
+        function resetGame() {
+            showingResults = false;
+            bestChoice = null;
+            worstChoice = null;
+            
+            const container = document.getElementById('choices-container');
+            container.innerHTML = '';
+            
+            choices.forEach(choice => {
+                container.appendChild(createChoiceCard(choice));
+            });
+
+            const submitBtn = document.getElementById('submit-btn');
+            submitBtn.textContent = 'See Results';
+            submitBtn.disabled = true;
+            submitBtn.onclick = showResults;
+        }
+
+        // Initial setup
+        document.getElementById('submit-btn').onclick = showResults;
+        resetGame();
+    </script>
+</body>
+</html>
